@@ -1,29 +1,46 @@
+# frozen_string_literal: true
+
 module Api
-  class NotesController < ApplicationController
+  class NotesController < Api::BaseController
     before_action :doorkeeper_authorize!
 
-    def confirm
-      if params[:id].match?(/\A\d+\z/)
-        note_id = params[:id].to_i
-        note = Note.find_by(id: note_id)
+    def index
+      user_id = params[:user_id]
+      user = User.find_by(id: user_id)
 
-        if note
-          render json: {
-            status: 200,
-            message: "Note save confirmed.",
-            note: {
-              id: note.id,
-              title: note.title,
-              content: note.content,
-              created_at: note.created_at.iso8601,
-              updated_at: note.updated_at.iso8601
-            }
-          }, status: :ok
-        else
-          base_render_record_not_found
-        end
+      if user.nil?
+        render json: { error: 'User not found.' }, status: :not_found
       else
-        render json: { message: "Wrong format." }, status: :bad_request
+        begin
+          notes_service = NotesService::Index.new(user_id)
+          notes = notes_service.call
+          render json: { status: 200, notes: notes }, status: :ok
+        rescue StandardError => e
+          render json: { error: e.message }, status: :internal_server_error
+        end
+      end
+    end
+
+    def create
+      result = NoteService::Create.new(
+        user_id: current_resource_owner.id,
+        title: params[:title],
+        content: params[:content]
+      ).call
+
+      if result[:note_id]
+        note = Note.find(result[:note_id])
+        render json: {
+          status: 201,
+          note: note.as_json
+        }, status: :created
+      else
+        error_status = case result[:error_message]
+                       when 'User not found' then :not_found
+                       when 'Title and content cannot be blank', 'Title cannot be blank' then :unprocessable_entity
+                       else :internal_server_error
+                       end
+        render json: { error: result[:error_message] }, status: error_status
       end
     end
 
@@ -57,10 +74,6 @@ module Api
 
     def autosave_params
       params.permit(:id, :content)
-    end
-
-    def base_render_record_not_found
-      render json: { message: "Record not found." }, status: :not_found
     end
   end
 end
