@@ -13,6 +13,7 @@ Rails.application.routes.draw do
         get 'confirm', to: 'notes#confirm'
         patch '/autosave', to: 'notes#autosave' # Corrected the autosave route from the existing code
       end
+      # Removed the duplicate put route for '/notes/:id' as it is already defined within the member block
     end
     post '/users/confirm-email', to: 'users#confirm_email'
     post '/users/login', to: 'users#login'

@@ -14,7 +14,21 @@ module Api
       else
         begin
           # Updated to include pagination parameters if provided
-          notes_service = NotesService::Index.new(user_id, params[:page], params[:limit])
+          page = params[:page]
+          limit = params[:limit]
+
+          # Validate page and limit parameters
+          if page.present? && (!page.match?(/^\d+$/) || page.to_i <= 0)
+            render json: { error: "Page must be greater than 0." }, status: :unprocessable_entity
+            return
+          end
+
+          if limit.present? && !limit.match?(/^\d+$/)
+            render json: { error: "Wrong format." }, status: :unprocessable_entity
+            return
+          end
+
+          notes_service = NotesService::Index.new(user_id, page, limit)
           notes = notes_service.call
           render json: { status: 200, notes: notes }, status: :ok
         rescue StandardError => e
@@ -83,7 +97,7 @@ module Api
       title = params[:title]
       content = params[:content]
 
-      unless note_id.to_i > 0
+      unless note_id > 0
         return render json: { error: "Wrong format." }, status: :unprocessable_entity
       end
 
@@ -95,7 +109,7 @@ module Api
         return render json: { error: "The content is required." }, status: :unprocessable_entity
       end
 
-      response = NoteService::Update.new(note_id: note_id, user_id: current_resource_owner.id, content: content, title: title).call
+      response = NoteService::Update.new(note_id: note_id, user_id: current_resource_owner.id, title: title, content: content).call
 
       if response[:success]
         note = Note.find(response[:note_id])
@@ -109,25 +123,22 @@ module Api
       note_id = params[:id].to_i
       user_id = current_resource_owner.id || params[:user_id].to_i
 
-      unless note_id.is_a?(Integer) && note_id > 0
+      unless note_id > 0
         return render json: { error: "Note ID must be a positive integer." }, status: :unprocessable_entity
       end
 
-      unless user_id.is_a?(Integer) && user_id > 0
+      unless user_id > 0
         return render json: { error: "User ID must be an integer." }, status: :unprocessable_entity
       end
 
-      note = Note.find_by(id: note_id)
-      return render json: { error: "Note not found." }, status: :not_found unless note
+      result = NoteService::Delete.new(note_id, user_id).call
 
-      return render json: { error: "Forbidden" }, status: :forbidden unless note.user_id == user_id
-
-      result = NoteService::Delete.new(note_id, user_id, doorkeeper_token.token).call
-
-      if result[:error]
-        render json: { error: result[:error] }, status: :internal_server_error
-      else
+      if result[:message]
         render json: { status: 200, message: "Note successfully deleted." }, status: :ok
+      elsif result[:error] == 'Note not found or not associated with the user'
+        render json: { error: "Note not found." }, status: :unprocessable_entity
+      else
+        render json: { error: result[:error] }, status: :internal_server_error
       end
     rescue StandardError => e
       render json: { error: e.message }, status: :internal_server_error
