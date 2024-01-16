@@ -1,5 +1,6 @@
 module Api
   class AuthController < BaseController
+    include UserService
     before_action :authenticate_user
 
     def verify_two_factor
