@@ -1,23 +1,29 @@
-# frozen_string_literal: true
-
 module Api
-  class NotesController < Api::BaseController
+  class NotesController < ApplicationController
     before_action :doorkeeper_authorize!
 
-    def index
-      user_id = params[:user_id]
-      user = User.find_by(id: user_id)
+    def confirm
+      if params[:id].match?(/\A\d+\z/)
+        note_id = params[:id].to_i
+        note = Note.find_by(id: note_id)
 
-      if user.nil?
-        render json: { error: 'User not found.' }, status: :not_found
-      else
-        begin
-          notes_service = NotesService::Index.new(user_id)
-          notes = notes_service.call
-          render json: { status: 200, notes: notes }, status: :ok
-        rescue StandardError => e
-          render json: { error: e.message }, status: :internal_server_error
+        if note
+          render json: {
+            status: 200,
+            message: "Note save confirmed.",
+            note: {
+              id: note.id,
+              title: note.title,
+              content: note.content,
+              created_at: note.created_at.iso8601,
+              updated_at: note.updated_at.iso8601
+            }
+          }, status: :ok
+        else
+          base_render_record_not_found
         end
+      else
+        render json: { message: "Wrong format." }, status: :bad_request
       end
     end
 
@@ -51,6 +57,10 @@ module Api
 
     def autosave_params
       params.permit(:id, :content)
+    end
+
+    def base_render_record_not_found
+      render json: { message: "Record not found." }, status: :not_found
     end
   end
 end
