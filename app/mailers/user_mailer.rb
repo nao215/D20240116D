@@ -10,4 +10,10 @@ class UserMailer < ApplicationMailer
   rescue StandardError => e
     Rails.logger.error "Failed to send reset password instructions: #{e.message}"
   end
+
+  def send_two_factor_code(user, code)
+    @user = user
+    @code = code
+    mail(to: @user.email, subject: I18n.t('mailers.user.two_factor_code.subject'))
+  end
 end
