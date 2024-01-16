@@ -1,26 +1,38 @@
+# frozen_string_literal: true
+
 module NoteService
   class Create < BaseService
-    attr_reader :user_id, :title, :content
+    attr_reader :user_id, :title, :content, :id
 
-    def initialize(user_id, title, content)
+    def initialize(user_id:, title: nil, content:, id: nil)
       @user_id = user_id
       @title = title
       @content = content
+      @id = id
     end
 
     def call
-      return { error_message: 'User not found' } unless User.exists?(user_id)
-      return { error_message: 'Title and content cannot be blank' } if title.blank? || content.blank?
+      user = User.find_by(id: @user_id)
+      return { error_message: 'User not found' } if user.nil?
+      return { error_message: 'Title and content cannot be blank' } if @title.blank? && @content.blank?
 
-      timestamp = Time.current
-      note = Note.create!(
-        user_id: user_id,
-        title: title,
-        content: content,
-        created_at: timestamp,
-        updated_at: timestamp
-      )
+      if @id
+        note = user.notes.find_by(id: @id)
+        return { error_message: 'Note not found' } if note.nil?
+        note.update!(title: @title, content: @content, updated_at: Time.current)
+      else
+        return { error_message: 'Title cannot be blank' } if @title.blank?
+        note = user.notes.create!(
+          title: @title,
+          content: @content,
+          created_at: Time.current,
+          updated_at: Time.current
+        )
+      end
+
       { note_id: note.id }
+    rescue ActiveRecord::RecordNotFound => e
+      { error_message: e.message }
     rescue ActiveRecord::RecordInvalid => e
       { error_message: e.message }
     end
