@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   namespace :api do
     resources :notes, only: [] do
       member do
+        put '', to: 'notes#update'
         get 'confirm', to: 'notes#confirm'
         put '', to: 'notes#update' # Added the update action from the new code
       end
