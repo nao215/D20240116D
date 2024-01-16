@@ -13,6 +13,7 @@ module Api
         render json: { error: 'User not found.' }, status: :not_found
       else
         begin
+          # Updated to include pagination parameters if provided
           notes_service = NotesService::Index.new(user_id, params[:page], params[:limit])
           notes = notes_service.call
           render json: { status: 200, notes: notes }, status: :ok
@@ -100,12 +101,17 @@ module Api
 
     def destroy
       note_id = params[:id].to_i
+      user_id = params[:user_id].to_i
 
       unless note_id.is_a?(Integer) && note_id > 0
         return render json: { error: "Wrong format." }, status: :unprocessable_entity
       end
 
-      result = NoteService::Delete.new(note_id, current_resource_owner.id).call
+      unless user_id.is_a?(Integer) && user_id > 0
+        return render json: { error: "User ID must be an integer." }, status: :unprocessable_entity
+      end
+
+      result = NoteService::Delete.new(note_id, user_id).call
 
       if result[:message]
         render json: { status: 200, message: "Note successfully deleted." }, status: :ok
