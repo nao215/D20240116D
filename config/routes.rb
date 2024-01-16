@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     resources :notes, only: [] do
       member do
         get '', to: 'notes#index' # Added from new code to allow listing notes
+        delete '', to: 'notes#destroy' # Added from new code to allow deleting notes
         put '', to: 'notes#update'
         get 'confirm', to: 'notes#confirm'
         patch '/autosave', to: 'notes#autosave' # Corrected the autosave route from the existing code

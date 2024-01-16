@@ -7,6 +7,8 @@ class NoteService::Delete < BaseService
   end
 
   def call
+    raise ArgumentError, 'Wrong format.' unless @note_id.is_a?(Integer)
+
     session_validation = ValidateSession.new(@token).call
     raise session_validation[:error_message] unless session_validation[:authenticated]
 
@@ -14,10 +16,10 @@ class NoteService::Delete < BaseService
     raise 'User not found or not authenticated' unless user && user.id == @user_id
 
     note = user.notes.find_by(id: @note_id)
-    raise 'Note not found or not associated with the user' unless note
+    raise 'Note not found.' unless note
 
     if note.destroy
-      { message: 'Note has been successfully deleted.' }
+      { status: 200, message: 'Note successfully deleted.' }
     else
       raise 'Error deleting the note'
     end
