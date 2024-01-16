@@ -4,7 +4,7 @@ class ValidateSession < BaseService
   end
 
   def call
-    validate_token
+    validate_token # Ensure the token is present
     session = Session.find_by(token: @token)
     return { authenticated: false, error_message: 'Session not found.' } unless session
 

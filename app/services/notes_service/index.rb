@@ -1,6 +1,7 @@
 
 # frozen_string_literal: true
 
+require_relative '../session_service/validate_session'
 module NotesService
   class Index
     attr_reader :user_id, :page, :limit
@@ -12,6 +13,12 @@ module NotesService
     end
 
     def call
+      session = Session.find_by(user_id: user_id)
+      unless SessionService::ValidateSession.new(session).call
+        return { error: 'User not authorized.', status: 401 }
+      end
+
+      # Continue with the existing checks and note retrieval
       user = User.find_by(id: user_id)
       return { error: 'User not found.', status: 400 } unless user
 
@@ -38,7 +45,7 @@ module NotesService
       { error: e.message, status: 500 }
     end
 
-    private
+    # private methods remain unchanged
 
     def format_notes(notes) # Include created_at in the formatted notes
       notes.map { |note| note.as_json(only: [:id, :title, :content, :created_at, :updated_at]) }

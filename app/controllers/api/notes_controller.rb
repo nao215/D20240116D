@@ -3,16 +3,17 @@
 module Api
   class NotesController < Api::BaseController
     before_action :doorkeeper_authorize!
+    before_action :set_user, only: [:index]
 
     def index
-      user_id = params[:user_id]
+      user_id = params[:user_id] || @user&.id
       user = User.find_by(id: user_id)
 
       if user.nil?
         render json: { error: 'User not found.' }, status: :not_found
       else
         begin
-          notes_service = NotesService::Index.new(user_id)
+          notes_service = NotesService::Index.new(user_id, params[:page], params[:limit])
           notes = notes_service.call
           render json: { status: 200, notes: notes }, status: :ok
         rescue StandardError => e
@@ -88,11 +89,12 @@ module Api
       end
 
       response = NoteService::Update.new(note_id: note_id, user_id: current_resource_owner.id, content: content, title: title).call
-      # Update the response handling to include the note's details in the success response
+
       if response[:success]
-        render json: { status: 200, note: response[:note] }, status: :ok
+        note = Note.find(response[:note_id])
+        render json: { status: 200, note: note.as_json }, status: :ok
       else
-        render json: { error: response[:message], errors: response[:errors] }, status: :internal_server_error
+        render json: { error: response[:message] }, status: response[:message] == 'Note not found' ? :not_found : :internal_server_error
       end
     end
 
@@ -117,6 +119,13 @@ module Api
     end
 
     private
+
+    def set_user
+      @user = current_resource_owner
+      unless @user
+        render json: { error: 'User must be logged in.' }, status: :unauthorized
+      end
+    end
 
     def autosave_params
       params.permit(:id, :content)
