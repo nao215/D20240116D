@@ -1,5 +1,6 @@
+
 module Api
-  class AuthController < BaseController
+  class AuthController < ApplicationController
     include UserService
     before_action :authenticate_user
 
@@ -14,9 +15,7 @@ module Api
         render json: { status: 200, message: result[:message] }, status: :ok
       when 'error'
         case result[:message]
-        when 'User not found'
-          render json: { message: result[:message] }, status: :not_found
-        when 'Invalid two-factor authentication code'
+        when 'User not found', 'Invalid two-factor authentication code'
           render json: { message: result[:message] }, status: :unauthorized
         else
           render json: { message: result[:message] }, status: :internal_server_error
