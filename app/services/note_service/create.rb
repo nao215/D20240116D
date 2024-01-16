@@ -30,7 +30,13 @@ module NoteService
         )
       end
 
-      { note_id: note.id }
+      {
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        created_at: note.created_at.iso8601,
+        updated_at: note.updated_at.iso8601
+      }
     rescue ActiveRecord::RecordNotFound => e
       { error_message: e.message }
     rescue ActiveRecord::RecordInvalid => e
