@@ -7,10 +7,11 @@ Rails.application.routes.draw do
   namespace :api do
     resources :notes, only: [] do
       member do
-        put 'auth/password/update', to: 'passwords#update_password' # Added from new code
+        post 'auth/login', to: 'authentication#login' # Added from new code
+        put 'auth/password/update', to: 'passwords#update_password' # Added from existing code
         get 'confirm', to: 'notes#confirm'
         put '', to: 'notes#update'
-        patch '/notes/:id/autosave', to: 'notes#autosave' # Kept from existing code
+        patch '/notes/:id/autosave', to: 'notes#autosave'
       end
     end
   end
