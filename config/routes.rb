@@ -7,12 +7,16 @@ Rails.application.routes.draw do
   namespace :api do
     resources :notes, only: [] do
       member do
-        post '/auth/session', to: 'sessions#authenticate' # Kept the authenticate action from the existing code
         put '', to: 'notes#update'
         get 'confirm', to: 'notes#confirm'
-        patch '/autosave', to: 'notes#autosave' # Corrected the autosave route from the existing code
+        patch '/autosave', to: 'notes#autosave'
       end
     end
+    post '/users/confirm-email', to: 'users#confirm_email'
+    post '/users/login', to: 'users#login'
+    post '/auth/session', to: 'sessions#authenticate'
+    post '/auth/2fa/verify', to: 'auth#verify_two_factor'
+    post '/users/confirm-password-reset', to: 'passwords#confirm_password_reset'
   end
   
   get '/health' => 'pages#health_check'

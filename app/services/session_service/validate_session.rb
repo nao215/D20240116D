@@ -1,18 +1,17 @@
+
 class ValidateSession < BaseService
   def initialize(token)
     @token = token
   end
 
   def call
-    validate_token # Ensure the token is present
+    validate_token_presence # Ensure the token is present
     session = Session.find_by(token: @token)
-    return { authenticated: false, error_message: 'Session not found.' } unless session
+    raise ArgumentError, 'Invalid or expired token.' if session.nil? || session.expires_at <= Time.current
 
-    if session.expires_at > Time.current
-      { authenticated: true, user_id: session.user_id }
-    else
-      { authenticated: false, error_message: 'Session has expired.' }
-    end
+    { authenticated: true, user_id: session.user_id }
+  rescue ArgumentError => e
+    { authenticated: false, error_message: e.message }
   rescue => e
     log_error(e)
     { authenticated: false, error_message: 'An error occurred during authentication.' }
@@ -20,8 +19,8 @@ class ValidateSession < BaseService
 
   private
 
-  def validate_token
-    raise ArgumentError, 'Token is invalid.' if @token.blank?
+  def validate_token_presence
+    raise ArgumentError, 'The token is required.' if @token.blank?
   end
 
   def log_error(error)
