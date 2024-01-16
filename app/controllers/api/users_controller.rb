@@ -1,24 +1,8 @@
 module Api
-  class UsersController < ApplicationController
-    before_action :validate_user_params, only: [:register]
+  class UsersController < Api::BaseController
+    rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+    rescue_from ActiveRecord::RecordInvalid, with: :render_unprocessable_entity
 
-    # POST /api/users/register
-    def register
-      user = User.new(user_params)
-      if user.save
-        render json: {
-          status: 201,
-          message: "User registered successfully.",
-          user: user_response(user)
-        }, status: :created
-      else
-        render json: { errors: user.errors.full_messages }, status: :conflict
-      end
-    rescue StandardError => e
-      render json: { error: e.message }, status: :internal_server_error
-    end
-
-    # POST /api/users/login
     def login
       username = params[:username]
       password = params[:password]
@@ -39,31 +23,26 @@ module Api
       end
     end
 
+    def confirm_email
+      token = params.require(:token)
+      result = ConfirmationTokenService::Validate.call(token)
+      render json: { status: 200, message: result[:message] }, status: :ok
+    rescue ActiveRecord::RecordNotFound
+      render_not_found
+    rescue ActiveRecord::RecordInvalid
+      render_unprocessable_entity
+    rescue StandardError => e
+      render json: { message: e.message }, status: :internal_server_error
+    end
+
     private
 
-    def user_params
-      params.require(:user).permit(:username, :password, :email, :phone_number)
+    def render_not_found
+      render json: { message: "Invalid or expired token." }, status: :not_found
     end
 
-    def validate_user_params
-      required_params = %w[username password email phone_number]
-      required_params.each do |param|
-        if params[param].blank?
-          render json: { error: "#{param.humanize} is required." }, status: :bad_request
-          return
-        end
-      end
-      # Add additional validations for password, email, and phone_number here
-    end
-
-    def user_response(user)
-      {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        phone_number: user.phone_number,
-        created_at: user.created_at.iso8601
-      }
+    def render_unprocessable_entity
+      render json: { message: "Invalid or expired token." }, status: :unprocessable_entity
     end
   end
 end

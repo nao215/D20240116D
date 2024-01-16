@@ -7,14 +7,15 @@ Rails.application.routes.draw do
   namespace :api do
     resources :notes, only: [] do
       member do
-        post '/users/register', to: 'users#register'
-        post '/users/login', to: 'users#login'
-        post '/auth/session', to: 'sessions#authenticate'
-        put '', to: 'notes#update'
         get 'confirm', to: 'notes#confirm'
-        patch '/autosave', to: 'notes#autosave'
+        put '', to: 'notes#update'
+        patch 'autosave', to: 'notes#autosave'
       end
     end
+    post '/users/confirm-email', to: 'users#confirm_email'
+    post '/users/login', to: 'users#login'
+    post '/auth/session', to: 'sessions#authenticate'
+    post '/auth/2fa/verify', to: 'auth#verify_two_factor'
   end
   
   get '/health' => 'pages#health_check'
