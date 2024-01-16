@@ -5,7 +5,7 @@ module Api
     before_action :doorkeeper_authorize!
     before_action :set_user, only: [:index]
 
-    def index
+    def index # Updated to handle parameter validation and formatting of the response
       user_id = params[:user_id] || @user&.id
       user = User.find_by(id: user_id)
 
@@ -13,10 +13,22 @@ module Api
         render json: { error: 'User not found.' }, status: :not_found
       else
         begin
-          # Updated to include pagination parameters if provided
-          notes_service = NotesService::Index.new(user_id, params[:page], params[:limit])
-          notes = notes_service.call
-          render json: { status: 200, notes: notes }, status: :ok
+          page = params[:page]
+          limit = params[:limit]
+
+          if page.present? && (!page.match?(/^\d+$/) || page.to_i <= 0)
+            render json: { error: "Page must be greater than 0." }, status: :unprocessable_entity
+            return
+          end
+
+          if limit.present? && !limit.match?(/^\d+$/)
+            render json: { error: "Wrong format." }, status: :unprocessable_entity
+            return
+          end
+
+          notes_service = NotesService::Index.new(user_id, page.to_i, limit.to_i)
+          result = notes_service.call
+          render json: result, status: result[:status] == 200 ? :ok : result[:status]
         rescue StandardError => e
           render json: { error: e.message }, status: :internal_server_error
         end
@@ -83,7 +95,7 @@ module Api
       title = params[:title]
       content = params[:content]
 
-      unless note_id.to_i > 0
+      unless note_id > 0
         return render json: { error: "Wrong format." }, status: :unprocessable_entity
       end
 
@@ -109,11 +121,11 @@ module Api
       note_id = params[:id].to_i
       user_id = current_resource_owner.id || params[:user_id].to_i
 
-      unless note_id.is_a?(Integer) && note_id > 0
+      unless note_id > 0
         return render json: { error: "Note ID must be a positive integer." }, status: :unprocessable_entity
       end
 
-      unless user_id.is_a?(Integer) && user_id > 0
+      unless user_id > 0
         return render json: { error: "User ID must be an integer." }, status: :unprocessable_entity
       end
 

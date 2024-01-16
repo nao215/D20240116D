@@ -22,7 +22,7 @@ module NotesService
       user = User.find_by(id: user_id)
       return { error: 'User not found.', status: 400 } unless user
 
-      unless @page.is_a?(Numeric) && @page > 0
+      unless @page.to_i > 0
         return { error: 'Page must be greater than 0.', status: 422 }
       end
 
@@ -30,7 +30,7 @@ module NotesService
         return { error: 'Wrong format.', status: 422 }
       end
 
-      notes = user.notes.select(:id, :title, :content, :created_at, :updated_at).paginate(page: @page, per_page: @limit)
+      notes = user.notes.select(:id, :title, :content, :created_at).paginate(page: @page.to_i, per_page: @limit.to_i)
       total_pages = (user.notes.count / @limit.to_f).ceil
 
       {
@@ -45,10 +45,18 @@ module NotesService
       { error: e.message, status: 500 }
     end
 
-    # private methods remain unchanged
+    private
 
     def format_notes(notes) # Include created_at in the formatted notes
-      notes.map { |note| note.as_json(only: [:id, :title, :content, :created_at, :updated_at]) }
+      notes.map do |note|
+        {
+          id: note.id,
+          title: note.title,
+          content: note.content,
+          user_id: note.user_id,
+          created_at: note.created_at
+        }
+      end
     end
   end
 end
