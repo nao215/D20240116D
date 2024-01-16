@@ -43,6 +43,15 @@ module Api
       title = params[:title].presence || ''
       content = params[:content]
 
+      # Validate parameters
+      return render json: { error: "The title is required." }, status: :unprocessable_entity if title.blank?
+      return render json: { error: "The content is required." }, status: :unprocessable_entity if content.blank?
+
+      # Check if user exists
+      user = User.find_by(id: user_id)
+      return render json: { error: "User not found." }, status: :not_found if user.nil?
+
+      # Create note
       result = NoteService::Create.new(
         user_id: user_id,
         title: title,
@@ -70,7 +79,7 @@ module Api
       note_id = autosave_params[:id]
       content = autosave_params[:content]
 
-      unless note_id.to_i > 0
+      unless note_id.is_a?(Integer)
         return render json: { message: "Wrong format." }, status: :unprocessable_entity
       end
 
@@ -97,7 +106,7 @@ module Api
       title = params[:title]
       content = params[:content]
 
-      unless note_id > 0
+      unless note_id.is_a?(Integer) && note_id > 0
         return render json: { error: "Wrong format." }, status: :unprocessable_entity
       end
 
@@ -123,11 +132,11 @@ module Api
       note_id = params[:id].to_i
       user_id = current_resource_owner.id || params[:user_id].to_i
 
-      unless note_id > 0
-        return render json: { error: "Note ID must be a positive integer." }, status: :unprocessable_entity
+      unless note_id.is_a?(Integer) && note_id > 0
+        return render json: { error: "Wrong format." }, status: :unprocessable_entity
       end
 
-      unless user_id > 0
+      unless user_id.is_a?(Integer) && user_id > 0
         return render json: { error: "User ID must be an integer." }, status: :unprocessable_entity
       end
 
