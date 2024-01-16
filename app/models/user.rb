@@ -10,4 +10,11 @@ class User < ApplicationRecord
 
   class << self
   end
+
+  # Instance method to confirm user's email
+  def confirm_email
+    self.email_confirmed = true
+    save
+  end
+
 end
