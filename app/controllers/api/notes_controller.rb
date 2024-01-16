@@ -4,42 +4,17 @@ module Api
   class NotesController < Api::BaseController
     before_action :doorkeeper_authorize!
 
-    # GET /api/notes?user_id={user_id}&page={page}&limit={limit}
     def index
       user_id = params[:user_id]
-      page = params.fetch(:page, 1).to_i
-      limit = params.fetch(:limit, 10).to_i
       user = User.find_by(id: user_id)
 
       if user.nil?
         render json: { error: 'User not found.' }, status: :not_found
       else
-        if page < 1
-          render json: { error: 'Page must be greater than 0.' }, status: :unprocessable_entity
-          return
-        end
-
-        unless page.is_a?(Numeric) && limit.is_a?(Numeric)
-          render json: { error: 'Wrong format.' }, status: :unprocessable_entity
-          return
-        end
-
         begin
           notes_service = NotesService::Index.new(user_id)
-          notes = notes_service.call(page: page, limit: limit)
-
-          if notes.present?
-            total_pages = (notes.size.to_f / limit).ceil
-            render json: {
-              status: 200,
-              notes: notes,
-              total_pages: total_pages,
-              limit: limit,
-              page: page
-            }, status: :ok
-          else
-            render json: { error: 'No notes found.' }, status: :not_found
-          end
+          notes = notes_service.call
+          render json: { status: 200, notes: notes }, status: :ok
         rescue StandardError => e
           render json: { error: e.message }, status: :internal_server_error
         end
@@ -120,6 +95,26 @@ module Api
       else
         render json: { error: response[:message] }, status: response[:message] == 'Note not found' ? :not_found : :internal_server_error
       end
+    end
+
+    def destroy
+      note_id = params[:id].to_i
+
+      unless note_id.is_a?(Integer) && note_id > 0
+        return render json: { error: "Wrong format." }, status: :unprocessable_entity
+      end
+
+      result = NoteService::Delete.new(note_id, current_resource_owner.id).call
+
+      if result[:message]
+        render json: { status: 200, message: "Note successfully deleted." }, status: :ok
+      elsif result[:error] == 'Note not found or not associated with the user'
+        render json: { error: "Note not found." }, status: :unprocessable_entity
+      else
+        render json: { error: result[:error] }, status: :internal_server_error
+      end
+    rescue StandardError => e
+      render json: { error: e.message }, status: :internal_server_error
     end
 
     private
