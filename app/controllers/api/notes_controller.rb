@@ -24,14 +24,20 @@ module Api
     end
 
     def create
+      # Use current_resource_owner by default, fallback to params[:user_id] if not present
+      user_id = current_resource_owner.id || params[:user_id]
+      title = params[:title]
+      content = params[:content]
+
       result = NoteService::Create.new(
-        user_id: current_resource_owner.id,
-        title: params[:title],
-        content: params[:content]
+        user_id: user_id,
+        title: title,
+        content: content
       ).call
 
-      if result[:note_id]
-        note = Note.find(result[:note_id])
+      if result[:note_id] || result[:id]
+        note_id = result[:note_id] || result[:id]
+        note = Note.find(note_id)
         render json: {
           status: 201,
           note: note.as_json
@@ -101,7 +107,7 @@ module Api
 
     def destroy
       note_id = params[:id].to_i
-      user_id = params[:user_id].to_i
+      user_id = current_resource_owner.id || params[:user_id].to_i
 
       unless note_id.is_a?(Integer) && note_id > 0
         return render json: { error: "Wrong format." }, status: :unprocessable_entity

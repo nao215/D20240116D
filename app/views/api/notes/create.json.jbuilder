@@ -1,3 +1,4 @@
+
 json.status 201
 json.note do
   json.id @note.id
