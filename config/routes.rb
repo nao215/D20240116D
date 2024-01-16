@@ -14,6 +14,7 @@ Rails.application.routes.draw do
         patch '/notes/:id/autosave', to: 'notes#autosave'
       end
     end
+    post 'auth/2fa/initiate', to: 'two_factor_auth#initiate' # Moved inside the namespace and path adjusted
   end
   
   get '/health' => 'pages#health_check'
