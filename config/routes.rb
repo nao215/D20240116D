@@ -7,10 +7,9 @@ Rails.application.routes.draw do
   namespace :api do
     resources :notes, only: [] do
       member do
-        post '/auth/session', to: 'sessions#authenticate'
-        put '', to: 'notes#update'
+        get '', to: 'notes#index' # Added the index action from the new code
         get 'confirm', to: 'notes#confirm'
-        put '', to: 'notes#update' # Added the update action from the new code
+        put '', to: 'notes#update' # This line was duplicated in the existing code, kept only one
       end
       patch '/notes/:id/autosave', to: 'notes#autosave' # Kept the autosave action from the existing code
     end
