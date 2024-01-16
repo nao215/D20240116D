@@ -26,7 +26,7 @@ module Api
     def create
       # Use current_resource_owner by default, fallback to params[:user_id] if not present
       user_id = current_resource_owner.id || params[:user_id]
-      title = params[:title]
+      title = params[:title].presence || ''
       content = params[:content]
 
       result = NoteService::Create.new(
@@ -56,7 +56,7 @@ module Api
       note_id = autosave_params[:id]
       content = autosave_params[:content]
 
-      unless note_id.is_a?(Integer)
+      unless note_id.to_i > 0
         return render json: { message: "Wrong format." }, status: :unprocessable_entity
       end
 
@@ -83,7 +83,7 @@ module Api
       title = params[:title]
       content = params[:content]
 
-      unless note_id.is_a?(Integer) && note_id > 0
+      unless note_id.to_i > 0
         return render json: { error: "Wrong format." }, status: :unprocessable_entity
       end
 
@@ -110,7 +110,7 @@ module Api
       user_id = current_resource_owner.id || params[:user_id].to_i
 
       unless note_id.is_a?(Integer) && note_id > 0
-        return render json: { error: "Wrong format." }, status: :unprocessable_entity
+        return render json: { error: "Note ID must be a positive integer." }, status: :unprocessable_entity
       end
 
       unless user_id.is_a?(Integer) && user_id > 0
