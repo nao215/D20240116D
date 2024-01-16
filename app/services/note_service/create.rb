@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module NoteService
-  class Create < BaseService
+  class Create
     attr_reader :user_id, :title, :content, :id
 
     def initialize(user_id:, title: nil, content:, id: nil)
