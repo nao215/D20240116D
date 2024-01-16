@@ -1,4 +1,5 @@
 # typed: ignore
+include OauthTokensConcern
 module Api
   class BaseController < ActionController::API
     include ActionController::Cookies
@@ -12,6 +13,7 @@ module Api
     rescue_from ActiveRecord::RecordNotUnique, with: :base_render_record_not_unique
     rescue_from Pundit::NotAuthorizedError, with: :base_render_unauthorized_error
 
+    before_action :doorkeeper_authorize!, only: [:update]
     def error_response(resource, error)
       {
         success: false,
