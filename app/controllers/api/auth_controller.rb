@@ -1,6 +1,8 @@
 require_relative '../../models/user'
+
 module Api
   class AuthController < BaseController
+    include ::UserService
     before_action :authenticate_user
 
     def verify_two_factor
@@ -29,7 +31,16 @@ module Api
     private
 
     def authenticate_user
-      UserService::Authenticate.authenticate(email: params[:email], password: params[:password], ip_address: request.remote_ip)
+      # The new code introduces a change in the way the result of the authentication is handled.
+      # We need to merge this change with the existing code.
+      result = ::UserService::Authenticate.authenticate(
+        username_or_email: params[:email], password: params[:password], ip_address: request.remote_ip
+      )
+      # The new code checks for an error in the result and renders a JSON response if there is one.
+      if result[:error]
+        render json: { message: result[:error] }, status: :unauthorized
+      end
+      # The existing code does not handle the result, so we don't need to add anything else here.
     end
   end
 end
