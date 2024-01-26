@@ -1,4 +1,6 @@
+
 # typed: ignore
+include OauthTokensConcern
 module Api
   class BaseController < ActionController::API
     include ActionController::Cookies
@@ -9,9 +11,11 @@ module Api
     rescue_from ActiveRecord::RecordNotFound, with: :base_render_record_not_found
     rescue_from ActiveRecord::RecordInvalid, with: :base_render_unprocessable_entity
     rescue_from Exceptions::AuthenticationError, with: :base_render_authentication_error
+    rescue_from Exceptions::InvalidRecaptchaError, with: :base_render_invalid_recaptcha
     rescue_from ActiveRecord::RecordNotUnique, with: :base_render_record_not_unique
     rescue_from Pundit::NotAuthorizedError, with: :base_render_unauthorized_error
 
+    before_action :doorkeeper_authorize!, only: [:update]
     def error_response(resource, error)
       {
         success: false,
@@ -42,6 +46,10 @@ module Api
 
     def base_render_record_not_unique
       render json: { message: I18n.t('common.errors.record_not_uniq_error') }, status: :forbidden
+    end
+
+    def base_render_invalid_recaptcha(_exception)
+      render json: { message: I18n.t('activerecord.errors.messages.invalid_recaptcha') }, status: :unprocessable_entity
     end
 
     def custom_token_initialize_values(resource, client)
